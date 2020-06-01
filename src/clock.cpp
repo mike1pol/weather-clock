@@ -2,6 +2,14 @@
 
 extern LiquidCrystal lcd;
 extern RTC_DS1307 rtc;
+extern byte mode;
+
+byte row2[8] = {0b00000,  0b00000,  0b00000,  0b00000,  0b00000,  0b00000,  0b11111,  0b11111};   // в т.ч. для двустрочной цифры 4 (с)НР
+byte row3[8] = {0b00000,  0b00000,  0b00000,  0b00000,  0b00000,  0b11111,  0b11111,  0b11111};   // в т.ч. для двустрочной цифры 0, для четырехстрочных цифр 2, 3, 4, 5, 6, 8, 9 (с)НР
+uint8_t UB[8] = {0b11111,  0b11111,  0b11111,  0b00000,  0b00000,  0b00000,  0b00000,  0b00000};   // для двустрочных 7, 0   // для четырехстрочных 2, 3, 4, 5, 6, 8, 9
+uint8_t UMB[8] = {0b11111,  0b11111,  0b11111,  0b00000,  0b00000,  0b00000,  0b11111,  0b11111};  // для двустрочных 2, 3, 5, 6, 8, 9
+uint8_t LMB[8] = {0b11111,  0b00000,  0b00000,  0b00000,  0b00000,  0b11111,  0b11111,  0b11111};  // для двустрочных 2, 3, 5, 6, 8, 9
+uint8_t LM2[8] = {0b11111,  0b00000,  0b00000,  0b00000,  0b00000,  0b00000,  0b00000,  0b00000};  // для двустрочной 4
 
 void Clock::setup()
 {
@@ -9,6 +17,14 @@ void Clock::setup()
     secs = now.second();
     minutes = now.minute();
     hours = now.hour();
+    lcd.createChar(0, row2);
+    lcd.createChar(1, UB);
+    lcd.createChar(2, row3);
+    lcd.createChar(3, UMB);
+    lcd.createChar(4, LMB);
+    lcd.createChar(5, LM2);
+    if (mode == 0)
+      draw(0, 0);
 }
 
 void Clock::tick()
@@ -22,7 +38,10 @@ void Clock::tick()
             secs = 0;
             minutes++;
             if (minutes < 60)
-                draw(0, 0);
+            {
+                if (mode == 0)
+                    draw(0, 0);
+            }
         }
         if (minutes == 60)
         {
@@ -30,12 +49,16 @@ void Clock::tick()
             secs = now.second();
             minutes = now.minute();
             hours = now.hour();
-            draw(0, 0);
+            if (mode == 0) {
+                draw(0, 0);
+            }
             if (hours > 23)
                 hours = 0;
         }
     }
-    dots(7, 0);
+    if (mode == 0) {
+        dots(7, 0);
+    }
 }
 
 void Clock::draw(byte x, byte y)
@@ -66,112 +89,58 @@ void Clock::dots(byte x, byte y)
     lcd.write(code);
 }
 
+void Clock::digSeg(byte x, byte y, byte z1, byte z2, byte z3, byte z4, byte z5, byte z6)
+{
+    lcd.setCursor(x, y);
+    lcd.write(z1);
+    lcd.write(z2);
+    lcd.write(z3);
+    if (x <= 11)
+        lcd.print(" ");
+    lcd.setCursor(x, y + 1);
+    lcd.write(z4);
+    lcd.write(z5);
+    lcd.write(z6);
+    if (x <= 11)
+        lcd.print(" ");
+}
+
 void Clock::dig(byte dig, byte x, byte y)
 {
-    uint8_t zero = 0;
     switch (dig)
     {
     case 0:
-        lcd.setCursor(x, y);
-        lcd.write(zero);
-        lcd.write(1);
-        lcd.write(2);
-        lcd.setCursor(x, y + 1);
-        lcd.write(3);
-        lcd.write(4);
-        lcd.write(5);
+        digSeg(x, y, 255, 1, 255, 255, 2, 255);
         break;
     case 1:
-        lcd.setCursor(x + 1, y);
-        lcd.write(1);
-        lcd.write(2);
-        lcd.setCursor(x + 2, y + 1);
-        lcd.write(5);
+        digSeg(x, y, 32, 255, 32, 32, 255, 32);
         break;
     case 2:
-        lcd.setCursor(x, y);
-        lcd.write(6);
-        lcd.write(6);
-        lcd.write(2);
-        lcd.setCursor(x, y + 1);
-        lcd.write(3);
-        lcd.write(7);
-        lcd.write(7);
+        digSeg(x, y, 3, 3, 255, 255, 4, 4);
         break;
     case 3:
-        lcd.setCursor(x, y);
-        lcd.write(6);
-        lcd.write(6);
-        lcd.write(2);
-        lcd.setCursor(x, y + 1);
-        lcd.write(7);
-        lcd.write(7);
-        lcd.write(5);
+        digSeg(x, y, 3, 3, 255, 4, 4, 255);
         break;
     case 4:
-        lcd.setCursor(x, y);
-        lcd.write(3);
-        lcd.write(4);
-        lcd.write(2);
-        lcd.setCursor(x + 2, y + 1);
-        lcd.write(5);
+        digSeg(x, y, 255, 0, 255, 5, 5, 255);
         break;
     case 5:
-        lcd.setCursor(x, y);
-        lcd.write(zero);
-        lcd.write(6);
-        lcd.write(6);
-        lcd.setCursor(x, y + 1);
-        lcd.write(7);
-        lcd.write(7);
-        lcd.write(5);
+        digSeg(x, y, 255, 3, 3, 4, 4, 255);
         break;
     case 6:
-        lcd.setCursor(x, y);
-        lcd.write(zero);
-        lcd.write(6);
-        lcd.write(6);
-        lcd.setCursor(x, y + 1);
-        lcd.write(3);
-        lcd.write(7);
-        lcd.write(5);
+        digSeg(x, y, 255, 3, 3, 255, 4, 255);
         break;
     case 7:
-        lcd.setCursor(x, y);
-        lcd.write(1);
-        lcd.write(1);
-        lcd.write(2);
-        lcd.setCursor(x + 1, y + 1);
-        lcd.write(zero);
+        digSeg(x, y, 1, 1, 255, 32, 255, 32);
         break;
     case 8:
-        lcd.setCursor(x, y);
-        lcd.write(zero);
-        lcd.write(6);
-        lcd.write(2);
-        lcd.setCursor(x, y + 1);
-        lcd.write(3);
-        lcd.write(7);
-        lcd.write(5);
+        digSeg(x, y, 255, 3, 255, 255, 4, 255);
         break;
     case 9:
-        lcd.setCursor(x, y);
-        lcd.write(zero);
-        lcd.write(6);
-        lcd.write(2);
-        lcd.setCursor(x + 1, y + 1);
-        lcd.write(4);
-        lcd.write(5);
+        digSeg(x, y, 255, 3, 255, 4, 4, 255);
         break;
     case 10:
-        lcd.setCursor(x, y);
-        lcd.write(32);
-        lcd.write(32);
-        lcd.write(32);
-        lcd.setCursor(x, y + 1);
-        lcd.write(32);
-        lcd.write(32);
-        lcd.write(32);
+        digSeg(x, y, 32, 32, 32, 32, 32, 32);
         break;
     }
 }

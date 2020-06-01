@@ -14,13 +14,17 @@ Clock clock;
 
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
+#include <sensors.h>
 Adafruit_BME280 bme;
+Sensor sensor;
 
 #include <GyverTimer.h>
 GTimer_ms clockTimer(CLOCK_TIMER);
 GTimer_ms sensorTimer(SENSOR_TIMER);
+GTimer_ms switchStatus(SWITCH_TIMER);
 
 boolean status;
+byte mode = 0;
 
 void setup()
 {
@@ -99,12 +103,12 @@ void setup()
   }
   else
   {
-    lcd.setCursor(0, 0);
-    lcd.print("Starting clock...");
-    clock.setup();
-    delay(1000);
-    clock.tick();
     lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("All sensors OK");
+    clock.setup();
+    sensor.tick();
+    delay(1000);
     bme.setSampling(Adafruit_BME280::MODE_FORCED,
                     Adafruit_BME280::SAMPLING_X1, // temperature
                     Adafruit_BME280::SAMPLING_X1, // pressure
@@ -117,32 +121,23 @@ void loop()
   if (clockTimer.isReady())
     clock.tick();
   if (sensorTimer.isReady())
+    sensor.tick();
+  if (switchStatus.isReady())
   {
-    bme.takeForcedMeasurement();
-    Serial.print(F("Temp: "));
-    Serial.println(bme.readTemperature());
-    Serial.print(F("Humidity: "));
-    Serial.println(bme.readHumidity());
-    Serial.print(F("Pressure: "));
-    Serial.println((float)bme.readPressure() * 0.00750062);
+    mode++;
+    if (mode > 1)
+    {
+      mode = 0;
+    }
+    lcd.clear();
+    switch (mode)
+    {
+    case 0:
+      clock.draw(0, 0);
+      break;
+    case 1:
+      sensor.draw();
+      break;
+    }
   }
-  // int phVal = analogRead(PHOTORESISTOR_PIN);
-  // Serial.println(phVal);
-  bme.takeForcedMeasurement();
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print("Temp: ");
-  lcd.print(bme.readTemperature());
-  lcd.setCursor(0, 1);
-  lcd.print("Hum: ");
-  lcd.print(bme.readHumidity());
-  delay(2000);
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print("hPa: ");
-  lcd.print((float)bme.readPressure() * 0.00750062);
-  lcd.setCursor(0, 1);
-  lcd.print("Alt: ");
-  lcd.print(bme.readAltitude(BME_SEALEVELPRESSURE_HPA));
-  delay(2000);
 }
