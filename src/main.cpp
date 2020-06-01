@@ -21,6 +21,7 @@ Sensor sensor;
 
 #include <GyverTimer.h>
 GTimer_ms clockTimer(CLOCK_TIMER);
+GTimer_ms photoTimer(PHOTO_TIMER);
 GTimer_ms sensorTimer(SENSOR_TIMER);
 GTimer_ms switchStatus(SWITCH_TIMER);
 
@@ -33,6 +34,7 @@ void setup()
   Serial.begin(9600);
   Serial.println(F("Initialization..."));
 #endif
+  analogWrite(LCD_BRI_PIN, LCD_BRI_MAX);
   lcd.begin(16, 2);
   lcd.backlight();
   delay(200);
@@ -118,6 +120,16 @@ void loop()
 {
   if (clockTimer.isReady())
     clock.tick();
+  if (photoTimer.isReady())
+  {
+    int bri = constrain(analogRead(PHOTO_PIN), PHOTO_MIN, PHOTO_MAX);
+#if DEBUG
+    Serial.print(bri);
+    Serial.print(F(" - "));
+    Serial.println(map(bri, PHOTO_MIN, PHOTO_MAX, LCD_BRI_MIN, LCD_BRI_MAX));
+#endif
+    analogWrite(LCD_BRI_PIN, map(bri, PHOTO_MIN, PHOTO_MAX, LCD_BRI_MIN, LCD_BRI_MAX));
+  }
   if (sensorTimer.isReady())
     sensor.tick();
   if (switchStatus.isReady())
