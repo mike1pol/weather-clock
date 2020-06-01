@@ -6,7 +6,7 @@ class Clock
 public:
     void setup();
     void tick();
-    void draw(byte x, byte y);
+    void draw();
 
 private:
     DateTime now;

@@ -23,8 +23,7 @@ void Clock::setup()
     lcd.createChar(3, UMB);
     lcd.createChar(4, LMB);
     lcd.createChar(5, LM2);
-    if (mode == 0)
-      draw(0, 0);
+    draw();
 }
 
 void Clock::tick()
@@ -38,10 +37,7 @@ void Clock::tick()
             secs = 0;
             minutes++;
             if (minutes < 60)
-            {
-                if (mode == 0)
-                    draw(0, 0);
-            }
+                draw();
         }
         if (minutes == 60)
         {
@@ -49,31 +45,48 @@ void Clock::tick()
             secs = now.second();
             minutes = now.minute();
             hours = now.hour();
-            if (mode == 0) {
-                draw(0, 0);
-            }
+            draw();
             if (hours > 23)
                 hours = 0;
         }
     }
     if (mode == 0) {
         dots(7, 0);
+    } else if (mode == 1) {
+        lcd.setCursor(8, 0);
+        lcd.print(dotFlag ? ":" : " ");
     }
 }
 
-void Clock::draw(byte x, byte y)
+void Clock::draw()
 {
-    lcd.setCursor(x, y);
-    lcd.print("               ");
-    lcd.setCursor(x, y + 1);
-    lcd.print("               ");
-    if (hours / 10 == 0)
-        dig(10, x, y);
-    else
-        dig(hours / 10, x, y);
-    dig(hours % 10, x + 4, y);
-    dig(minutes / 10, x + 8, y);
-    dig(minutes % 10, x + 12, y);
+    if (mode == 0)
+    {
+        byte x = 0;
+        byte y = 0;
+        lcd.setCursor(x, y);
+        lcd.print("               ");
+        lcd.setCursor(x, y + 1);
+        lcd.print("               ");
+        if (hours / 10 == 0)
+            dig(10, x, y);
+        else
+            dig(hours / 10, x, y);
+        dig(hours % 10, x + 4, y);
+        dig(minutes / 10, x + 8, y);
+        dig(minutes % 10, x + 12, y);
+    }
+    else if (mode == 1)
+    {
+        lcd.setCursor(6, 0);
+        if (hours < 10)
+            lcd.print(" ");
+        lcd.print(String(hours));
+        lcd.print(dotFlag ? ":" : " ");
+        if (minutes < 10)
+            lcd.print("0");
+        lcd.print(String(minutes));
+    }
 };
 
 void Clock::dots(byte x, byte y)

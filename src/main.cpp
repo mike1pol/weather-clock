@@ -24,8 +24,11 @@ GTimer_ms clockTimer(CLOCK_TIMER);
 GTimer_ms photoTimer(PHOTO_TIMER);
 GTimer_ms sensorTimer(SENSOR_TIMER);
 GTimer_ms switchStatus(SWITCH_TIMER);
+GTimer_ms hourPlotTimer(HOUR_TIMER);
+GTimer_ms dayPlotTimer(DAY_TIMER);
+GTimer_ms predictTimer(PREDICT_TIMER);
 
-boolean status;
+boolean startupError;
 byte mode = 0;
 
 void setup()
@@ -43,56 +46,61 @@ void setup()
   lcd.print(F("Loading..."));
   delay(500);
   bool rtcStatus = rtc.begin();
+  if (RESET_CLOCK)
+    rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+#if DEBUG
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print(F("RTC..."));
-#if DEBUG
   Serial.print(F("RTC..."));
   if (rtcStatus)
     Serial.println(F("OK"));
   else
     Serial.println(F("Error"));
-#endif
 
   delay(100);
   if (rtcStatus)
     lcd.print(F("OK"));
   else
   {
-    status = false;
+    startupError = false;
     lcd.print(F("Error"));
   }
   delay(500);
+#else
+  if (!rtcStatus)
+    startupError = false;
+#endif
 
   bool bmeStatus = bme.begin(BME_ADDRESS, &Wire);
+#if DEBUG
   lcd.setCursor(0, 1);
   lcd.print(F("BME280..."));
-#if DEBUG
   Serial.print(F("BME280..."));
   if (bmeStatus)
     Serial.println(F("OK"));
   else
     Serial.println(F("Error"));
-#endif
   if (bmeStatus)
     lcd.print(F("OK"));
   else
   {
-    status = false;
+    startupError = false;
     lcd.print(F("Error"));
   }
-
   delay(1000);
-  if (RESET_CLOCK)
-    rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+#else
+  if (!bmeStatus)
+    startupError = false;
+#endif
 
 #if DEBUG
-  if (status)
+  if (startupError)
     Serial.println("Startup errros");
   else
     Serial.println("Ready");
 #endif
-  if (status)
+  if (startupError)
   {
     lcd.clear();
     while (1)
@@ -108,7 +116,7 @@ void setup()
   {
     lcd.clear();
     clock.setup();
-    sensor.tick();
+    sensor.setup();
     bme.setSampling(Adafruit_BME280::MODE_FORCED,
                     Adafruit_BME280::SAMPLING_X1, // temperature
                     Adafruit_BME280::SAMPLING_X1, // pressure
@@ -116,6 +124,7 @@ void setup()
                     Adafruit_BME280::FILTER_OFF);
   }
 }
+void switchMode();
 void loop()
 {
   if (clockTimer.isReady())
@@ -132,22 +141,35 @@ void loop()
   }
   if (sensorTimer.isReady())
     sensor.tick();
+  if (hourPlotTimer.isReady())
+    sensor.saveHour();
+  if (dayPlotTimer.isReady())
+    sensor.saveDay();
+  if (predictTimer.isReady())
+    sensor.predict();
   if (switchStatus.isReady())
   {
     mode++;
-    if (mode > 1)
-    {
-      mode = 0;
-    }
+    switchMode();
+  }
+}
+
+void switchMode()
+{
+  switch (mode)
+  {
+  case 0:
     lcd.clear();
-    switch (mode)
-    {
-    case 0:
-      clock.draw(0, 0);
-      break;
-    case 1:
-      sensor.draw();
-      break;
-    }
+    clock.draw();
+    break;
+  case 1:
+    lcd.clear();
+    sensor.draw();
+    clock.draw();
+    break;
+  case 3:
+    mode = 2;
+    switchMode();
+    break;
   }
 }
