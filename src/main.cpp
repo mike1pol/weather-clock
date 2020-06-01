@@ -15,6 +15,7 @@ Clock clock;
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
 #include <sensors.h>
+#define SEALEVELPRESSURE_HPA (1013.25)
 Adafruit_BME280 bme;
 Sensor sensor;
 
@@ -38,7 +39,7 @@ void setup()
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print(F("Loading..."));
-  delay(1000);
+  delay(500);
   bool rtcStatus = rtc.begin();
   lcd.clear();
   lcd.setCursor(0, 0);
@@ -59,7 +60,7 @@ void setup()
     status = false;
     lcd.print(F("Error"));
   }
-  delay(1000);
+  delay(500);
 
   bool bmeStatus = bme.begin(BME_ADDRESS, &Wire);
   lcd.setCursor(0, 1);
@@ -104,11 +105,8 @@ void setup()
   else
   {
     lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print("All sensors OK");
     clock.setup();
     sensor.tick();
-    delay(1000);
     bme.setSampling(Adafruit_BME280::MODE_FORCED,
                     Adafruit_BME280::SAMPLING_X1, // temperature
                     Adafruit_BME280::SAMPLING_X1, // pressure

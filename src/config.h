@@ -15,5 +15,4 @@
 #define LCD_D7_PIN 10
 
 // BME
-#define BME_SEALEVELPRESSURE_HPA (1013.25)
 #define BME_ADDRESS 0x76

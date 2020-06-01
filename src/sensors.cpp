@@ -17,7 +17,7 @@ void Sensor::draw()
     lcd.setCursor(0, 0);
     lcd.print(F("T:"));
     char text[14];
-    sprintf(text, "%d.%02u%cC", (int)dispTemp, (int)(dispTemp * 100) % 100, 223);
+    sprintf(text, "%d%cC", (int)dispTemp, 223);
     lcd.print(text);
     lcd.setCursor(dispHum >= 100 ? 10 : 11, 0);
     lcd.print("H:");
