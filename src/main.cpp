@@ -51,10 +51,13 @@ void buttonInterrupt()
 
 void setup()
 {
-// #if DEBUG
+// #if DEBUG || BATTERY_CALIBRATION
   Serial.begin(9600);
   Serial.println(F("Initialization..."));
 // #endif
+#if BATTERY_CALIBRATION
+  battery.callibration();
+#endif
   pinMode(BATTERY_PIN, INPUT);
   analogWrite(LCD_BRI_PIN, LCD_BRI_MAX);
   lcd.begin(16, 2);

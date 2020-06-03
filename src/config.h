@@ -9,8 +9,8 @@
 #define BATTERY true
 #define BATTERY_CALIBRATION false
 #define BATTERY_PIN A3 // Port name in pinout
-#define BATTERY_MIN (float)2.75
-#define BATTERY_MAX (float)4.35
+#define BATTERY_MIN (float)2.75 * 1000
+#define BATTERY_MAX (float)4.25 * 1000
 
 // Timers
 #define BATTERY_TIMER 1000
