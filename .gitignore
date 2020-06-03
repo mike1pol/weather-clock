@@ -4,3 +4,7 @@
 .vscode/launch.json
 .vscode/ipch
 examples
+/cmake-build-*
+/CMakeLists.txt
+/CMakeListsPrivate.txt
+.idea

@@ -1,9 +1,12 @@
 #include <GyverButton.h>
 #include <GyverTimer.h>
 
-class Button
-{
-    public:
-        void tick();
-        void interrupt();
+class Button {
+public:
+    void tick();
+
+    void interrupt();
+
+private:
+    boolean isClicked;
 };

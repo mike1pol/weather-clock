@@ -3,19 +3,23 @@
 #include <EEPROMex.h>
 #include <config.h>
 
-class Battery
-{
+class Battery {
 public:
-  void setup();
-  void tick();
-  void draw();
-  void callibration();
+    void setup();
+
+    void tick();
+
+    void draw();
+
+    void callibration();
 
 private:
-  long current;
-  int pr;
-  float vccConst5;
-  float vccConst1;
-  long readVcc5();
-  long readVcc1();
+    long current;
+    int pr;
+    float vccConst5;
+    float vccConst1;
+
+    long readVcc5();
+
+    long readVcc1();
 };

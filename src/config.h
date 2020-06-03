@@ -40,3 +40,4 @@
 
 // BME
 #define BME_ADDRESS 0x76
+#define SEALEVELPRESSURE_HPA (1013.25)
