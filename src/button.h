@@ -3,8 +3,8 @@
 
 class Button {
 public:
-    void tick();
+  void tick();
 
 private:
-    boolean isClicked;
+  boolean isClicked;
 };

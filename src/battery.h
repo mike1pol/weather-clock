@@ -5,21 +5,21 @@
 
 class Battery {
 public:
-    void setup();
+  void setup();
 
-    void tick();
+  void tick();
 
-    void draw();
+  void draw();
 
-    void calibration();
+  void calibration();
 
 private:
-    long current;
-    int pr;
-    float vccConst5;
-    float vccConst1;
+  long current;
+  int pr;
+  float vccConst5;
+  float vccConst1;
 
-    long readVcc5();
+  long readVcc5();
 
-    long readVcc1();
+  long readVcc1();
 };

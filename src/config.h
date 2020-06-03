@@ -26,7 +26,7 @@
 #define PHOTO_PIN A1
 #define PHOTO_MIN 30
 #define PHOTO_MAX 800
-#define LCD_BRI_MIN 50
+#define LCD_BRI_MIN 10
 #define LCD_BRI_MAX 255
 
 // LCD
