@@ -2,7 +2,7 @@
 
 extern Adafruit_BME280 bme;
 extern LiquidCrystal lcd;
-extern byte mode;
+extern int mode;
 
 void Sensor::setup() {
     bme.takeForcedMeasurement();
@@ -85,7 +85,7 @@ void Sensor::predict() {
     dispRain = (int)map(delta, -250, 250, 100, -100);
 }
 
-void Sensor::draw() {
+void Sensor::draw() const {
     int key = 13;
     int down = 2;
     int up = 3;
@@ -129,11 +129,42 @@ void Sensor::draw() {
     }
     sprintf(text, "%dmm", dispPressure);
     lcd.print(text);
+}
 
+void Sensor::drawPredict() const {
+    char text[14];
     // rain
     sprintf(text, "%d%%", dispRain);
-    lcd.setCursor(16 - strlen(text) - 1, 1);
+    int rainCol = LCD_WIDTH - strlen(text);
+#ifdef BATTERY
+    rainCol = rainCol - 1;
+#endif
+    lcd.setCursor(rainCol, 1);
     lcd.print(text);
+}
+
+void Sensor::drawPlot() {
+    switch (mode) {
+        case 3:
+            drawPlot(TEMP_HOUR_PLOT);
+            break;
+        case 31:
+            drawPlot(TEMP_DAY_PLOT);
+            break;
+        case 4:
+            drawPlot(HUM_HOUR_PLOT);
+            break;
+        case 41:
+            drawPlot(HUM_DAY_PLOT);
+            break;
+        case 5:
+            drawPlot(PRESS_HOUR_PLOT);
+            break;
+        default:
+        case 51:
+            drawPlot(PRESS_DAY_PLOT);
+            break;
+    }
 }
 
 void Sensor::drawPlot(plotType plot) {
@@ -188,7 +219,7 @@ void Sensor::drawPlot(plotType plot) {
     int row = 1;
     int width = strlen(textMin) > strlen(textMax) ? strlen(textMin) : strlen(textMax);
     width = width + 1;
-    int height = 2;
+    int height = LCD_HEIGHT;
     lcd.setCursor(16 - strlen(textMin), 0);
     lcd.print(textMin);
     lcd.setCursor(16 - strlen(textMax), 1);

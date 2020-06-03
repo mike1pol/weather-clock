@@ -1,5 +1,6 @@
 #include <Adafruit_BME280.h>
 #include <LiquidCrystal.h>
+#include <config.h>
 
 enum plotType {
     TEMP_HOUR_PLOT,
@@ -16,15 +17,17 @@ public:
 
     void tick();
 
-    void draw();
+    void draw() const;
 
-    void drawPlot(plotType plot);
+    void drawPlot();
 
     void saveHour();
 
     void saveDay();
 
     void predict();
+
+    void drawPredict() const;
 
 private:
     int dispTemp;
@@ -37,5 +40,6 @@ private:
     int tempHour[15], tempDay[15];
     int humHour[15], humDay[15];
     int pressHour[15], pressDay[15];
+    void drawPlot(plotType plot);
     // int tempTrend, humTrend, pressTrend;
 };

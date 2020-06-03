@@ -5,8 +5,6 @@ class Button {
 public:
     void tick();
 
-    void interrupt();
-
 private:
     boolean isClicked;
 };

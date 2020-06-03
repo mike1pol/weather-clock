@@ -2,7 +2,7 @@
 
 extern LiquidCrystal lcd;
 extern RTC_DS1307 rtc;
-extern byte mode;
+extern int mode;
 
 void Clock::setup() {
     now = rtc.now();

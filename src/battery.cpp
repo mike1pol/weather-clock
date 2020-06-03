@@ -26,7 +26,7 @@ void Battery::setup() {
     tick();
 }
 
-void Battery::callibration() {
+void Battery::calibration() {
     vccConst1 = 1.1;
     vccConst5 = 5.0;
     Serial.print("Real VCC is: ");

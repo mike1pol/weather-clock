@@ -21,9 +21,10 @@ Clock clock;
 Adafruit_BME280 bme;
 Sensor sensor;
 
+#if BATTERY
 #include <battery.h>
-
 Battery battery;
+#endif
 
 #include <GyverTimer.h>
 
@@ -34,7 +35,9 @@ GTimer_ms switchStatus(SWITCH_TIMER);
 GTimer_ms hourPlotTimer(HOUR_TIMER);
 GTimer_ms dayPlotTimer(DAY_TIMER);
 GTimer_ms predictTimer(PREDICT_TIMER);
+#ifdef BATTERY
 GTimer_ms batteryTimer(BATTERY_TIMER);
+#endif
 
 #include <GyverButton.h>
 #include <button.h>
@@ -43,7 +46,7 @@ GButton btn(BUTTON_PIN, LOW_PULL, NORM_OPEN);
 Button button;
 
 boolean startupError;
-byte mode = 0;
+int mode = 0;
 
 void switchMode();
 
@@ -54,16 +57,16 @@ void setupLCDInfo();
 void setupLCDPlot();
 
 void buttonInterrupt() {
-    button.interrupt();
+    button.tick();
 }
 
 void setup() {
 // #if DEBUG || BATTERY_CALIBRATION
     Serial.begin(9600);
-    Serial.println(F("Initialization..."));
+    Serial.println("Initialization...");
 // #endif
-#if BATTERY_CALIBRATION
-    battery.callibration();
+#if BATTERY && BATTERY_CALIBRATION
+    battery.calibration();
 #endif
     pinMode(BATTERY_PIN, INPUT);
     analogWrite(LCD_BRI_PIN, LCD_BRI_MAX);
@@ -73,7 +76,7 @@ void setup() {
     delay(200);
     lcd.clear();
     lcd.setCursor(0, 0);
-    lcd.print(F("Loading..."));
+    lcd.print("Loading...");
     delay(500);
 #if BUTTON_INTERRUPT
     attachInterrupt(BUTTON_PIN - 1, buttonInterrupt, CHANGE);
@@ -146,7 +149,9 @@ void setup() {
         lcd.clear();
         clock.setup();
         sensor.setup();
+#ifdef BATTERY
         battery.setup();
+#endif
         bme.setSampling(Adafruit_BME280::MODE_FORCED,
                         Adafruit_BME280::SAMPLING_X1, // temperature
                         Adafruit_BME280::SAMPLING_X1, // pressure
@@ -157,8 +162,13 @@ void setup() {
 
 void loop() {
     button.tick();
-    if (batteryTimer.isReady())
+#ifdef BATTERY
+    if (batteryTimer.isReady()) {
         battery.tick();
+        if (mode == 1)
+            battery.draw();
+    }
+#endif
     if (clockTimer.isReady())
         clock.tick();
     if (photoTimer.isReady()) {
@@ -168,16 +178,31 @@ void loop() {
         Serial.print(F(" - "));
         Serial.println(map(bri, PHOTO_MIN, PHOTO_MAX, LCD_BRI_MIN, LCD_BRI_MAX));
 #endif
-        analogWrite(LCD_BRI_PIN, map(bri, PHOTO_MIN, PHOTO_MAX, LCD_BRI_MIN, LCD_BRI_MAX));
+        analogWrite(LCD_BRI_PIN, (int)map(bri, PHOTO_MIN, PHOTO_MAX, LCD_BRI_MIN, LCD_BRI_MAX));
     }
-    if (sensorTimer.isReady())
+    if (sensorTimer.isReady()) {
         sensor.tick();
-    if (hourPlotTimer.isReady())
-        sensor.saveHour();
-    if (dayPlotTimer.isReady())
-        sensor.saveDay();
-    if (predictTimer.isReady())
+        if (mode == 1)
+            sensor.draw();
+    }
+    if (predictTimer.isReady()) {
         sensor.predict();
+        if (mode == 1)
+            sensor.drawPredict();
+    }
+    if (hourPlotTimer.isReady()) {
+        sensor.saveHour();
+        if (mode == 3 || mode == 4 || mode == 5) {
+            sensor.drawPlot();
+        }
+    }
+    if (dayPlotTimer.isReady()) {
+        sensor.saveDay();
+        if (mode == 31 || mode == 41 || mode == 51) {
+            sensor.drawPlot();
+        }
+    }
+
     if (switchStatus.isReady()) {
         mode++;
         switchMode();
@@ -194,28 +219,27 @@ void switchMode() {
         case 1:
             setupLCDInfo();
             lcd.clear();
-            sensor.draw();
             clock.draw();
+            sensor.draw();
+            sensor.drawPredict();
+#ifdef BATTERY
             battery.draw();
+#endif
             break;
         case 2:
             mode = 0;
             switchMode();
             break;
         case 3:
-            setupLCDPlot();
-            lcd.clear();
-            sensor.drawPlot(TEMP_HOUR_PLOT);
-            break;
+        case 31:
         case 4:
-            setupLCDPlot();
-            lcd.clear();
-            sensor.drawPlot(HUM_HOUR_PLOT);
-            break;
+        case 41:
         case 5:
+        case 51:
+        default:
             setupLCDPlot();
             lcd.clear();
-            sensor.drawPlot(PRESS_HOUR_PLOT);
+            sensor.drawPlot();
             break;
     }
 }

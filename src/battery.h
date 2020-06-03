@@ -11,7 +11,7 @@ public:
 
     void draw();
 
-    void callibration();
+    void calibration();
 
 private:
     long current;

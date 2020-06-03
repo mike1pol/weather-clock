@@ -30,6 +30,8 @@
 #define LCD_BRI_MAX 255
 
 // LCD
+#define LCD_WIDTH 16
+#define LCD_HEIGHT 2
 #define LCD_RS_PIN 9
 #define LCD_E_PIN 8
 #define LCD_D4_PIN A0
