@@ -8,7 +8,7 @@
 // Battery checker
 #define BATTERY true
 #define BATTERY_CALIBRATION false
-#define BATTERY_PIN A3 // Port name in pinout
+#define BATTERY_PIN A3
 #define BATTERY_MIN (float)2.75 * 1000
 #define BATTERY_MAX (float)4.25 * 1000
 
@@ -43,3 +43,9 @@
 // BME
 #define BME_ADDRESS 0x76
 #define SEALEVELPRESSURE_HPA (1013.25)
+
+
+// CO2
+#define CO2_BLINK 800
+#define CO2_RX 3
+#define CO2_TX 4

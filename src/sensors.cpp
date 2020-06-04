@@ -39,8 +39,8 @@ void Sensor::saveHour() {
 void Sensor::saveDay() {
   long averTemp = 0, averHum = 0, averPress = 0;
   for (byte i = 0; i < 15; i++) {
-    averTemp += tempDay[i];
-    averHum += humDay[i];
+    averTemp += tempHour[i];
+    averHum += humHour[i];
     averPress += pressHour[i];
   }
   averTemp /= 15;
@@ -217,17 +217,15 @@ void Sensor::drawPlot(plotType plot) {
       sprintf(textMax, "%dmm", maxValue);
       break;
   }
+  lcd.setCursor(16 - strlen(textMin), 0);
+  lcd.print(textMin);
+  lcd.setCursor(16 - strlen(textMax), 1);
+  lcd.print(textMax);
   int row = 1;
   int height = LCD_HEIGHT;
   int strip = max(strlen(textMin), strlen(textMax));
   int width = LCD_WIDTH - strip - 2;
   int start = 14 - width;
-  Serial.print("width: ");
-  Serial.println(width);
-  lcd.setCursor(16 - strlen(textMin), 0);
-  lcd.print(textMin);
-  lcd.setCursor(16 - strlen(textMax), 1);
-  lcd.print(textMax);
   if (maxValue == minValue) maxValue += 1;
   int col = 0;
   for (int i = start; i < 15; i++) {

@@ -1,5 +1,4 @@
 #include <Arduino.h>
-#include <SPI.h>
 #include <Wire.h>
 
 #include <config.h>
@@ -63,17 +62,22 @@ void buttonInterrupt() {
 }
 
 void setup() {
-// #if DEBUG || BATTERY_CALIBRATION
+#if DEBUG || BATTERY_CALIBRATION
   Serial.begin(9600);
   Serial.println("Initialization...");
-// #endif
-#if BATTERY && BATTERY_CALIBRATION
-  battery.calibration();
 #endif
   pinMode(BATTERY_PIN, INPUT);
   analogWrite(LCD_BRI_PIN, LCD_BRI_MAX);
   lcd.begin(16, 2);
   lcd.backlight();
+#if BATTERY && BATTERY_CALIBRATION
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Battery callibration");
+  lcd.setCursor(0, 1);
+  lcd.print("Connect to serial port");
+  battery.calibration();
+#endif
   setupLCDClock();
   delay(200);
   lcd.clear();
