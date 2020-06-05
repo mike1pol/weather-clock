@@ -129,7 +129,15 @@ void Sensor::draw() const {
   lcd.setCursor(dispHum >= 100 ? 12 : 13, 0);
   sprintf(text, "%d%%", dispHum);
   lcd.print(text);
-
+  // Clear second line
+  int clearTo = 16;
+#if BATTERY
+  clearTo -= 1;
+#endif
+  for (int i = 0; i < clearTo + 1; i++) {
+    lcd.setCursor(i, 1);
+    lcd.write(16);
+  }
   // Press
   lcd.setCursor(0, 1);
   if (pressDay[key] > 0) {
@@ -154,11 +162,6 @@ void Sensor::draw() const {
   sprintf(text, "%d", dispCO2);
   int tW = (strlen(text) + 1) / 2;
   int start = floor(((LCD_WIDTH - left - right) / 2) + tW);
-  int clearTo = LCD_WIDTH - right - 1;
-  for (int i = start; i < clearTo + 1; i++) {
-    lcd.setCursor(i, 1);
-    lcd.write(16);
-  }
   lcd.setCursor(start, 1);
   lcd.print(text);
   int width = strlen(text);
