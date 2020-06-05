@@ -136,10 +136,6 @@ void Sensor::draw() const {
 #if BATTERY
   clearFrom = 1;
 #endif
-  Serial.print("clearFrom: ");
-  Serial.print(clearFrom);
-  Serial.print(" clearTo: ");
-  Serial.println(clearTo);
   for (int i = clearFrom; i < clearTo; i++) {
     lcd.setCursor(i, 1);
     lcd.write(16);
@@ -156,19 +152,11 @@ void Sensor::draw() const {
   lcd.write(4);
 #if CO2
   left += strlen(text) + 2;
-  Serial.print("left: ");
-  Serial.print(left);
   sprintf(text, "%d%%", rain);
   int right = strlen(text) + 1;
-  Serial.print(" right: ");
-  Serial.print(right);
   sprintf(text, "%d", co2);
   int tW = (strlen(text) + 1);
-  Serial.print(" tW: ");
-  Serial.print(tW);
   int start = left + floor((LCD_WIDTH - left - right - tW) / 2);
-  Serial.print(" start: ");
-  Serial.println(start);
   lcd.setCursor(start, 1);
   lcd.print(text);
   int width = strlen(text);

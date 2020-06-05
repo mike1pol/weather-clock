@@ -74,10 +74,10 @@ void buttonInterrupt() {
 }
 
 void setup() {
-//#if DEBUG || BATTERY_CALIBRATION
+#if DEBUG || BATTERY_CALIBRATION
   Serial.begin(9600);
   Serial.println("Initialization...");
-//#endif
+#endif
   analogWrite(LCD_BRI_PIN, LCD_BRI_MAX);
   lcd.begin(16, 2);
   lcd.backlight();
