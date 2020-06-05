@@ -1,8 +1,12 @@
 #include <sensors.h>
 
 extern Adafruit_BME280 bme;
+#if CO2
+extern MHZ19_uart mhz19;
+#endif
 extern LiquidCrystal lcd;
 extern int mode;
+extern boolean sMode;
 
 void Sensor::setup() {
   bme.takeForcedMeasurement();
@@ -22,6 +26,9 @@ void Sensor::tick() {
   dispTemp = (int) bme.readTemperature();
   dispHum = (int) bme.readHumidity();
   dispPressure = (int) (bme.readPressure() * 0.00750062);
+#if CO2
+  dispCO2 = (int) mhz19.getPPM();
+#endif
 }
 
 void Sensor::saveHour() {
@@ -30,30 +37,36 @@ void Sensor::saveHour() {
     tempHour[i] = tempHour[next];
     humHour[i] = humHour[next];
     pressHour[i] = pressHour[next];
+    co2Hour[i] = co2Hour[next];
   }
   tempHour[14] = dispTemp;
   humHour[14] = dispHum;
   pressHour[14] = dispPressure;
+  co2Hour[14] = dispCO2;
 }
 
 void Sensor::saveDay() {
-  long averTemp = 0, averHum = 0, averPress = 0;
+  long averTemp = 0, averHum = 0, averPress = 0, averCO = 0;
   for (byte i = 0; i < 15; i++) {
     averTemp += tempHour[i];
     averHum += humHour[i];
     averPress += pressHour[i];
+    averCO += pressHour[i];
   }
   averTemp /= 15;
   averHum /= 15;
   averPress /= 15;
+  averCO /= 15;
   for (byte i = 0; i < 14; i++) {
     tempDay[i] = tempDay[i + 1];
     humDay[i] = humDay[i + 1];
     pressDay[i] = pressDay[i + 1];
+    co2Day[i] = co2Day[i + 1];
   }
   tempDay[14] = (int) averTemp;
   humDay[14] = (int) averHum;
   pressDay[14] = (int) averPress;
+  co2Day[14] = (int) averCO;
 }
 
 void Sensor::predict() {
@@ -128,8 +141,30 @@ void Sensor::draw() const {
     if (dispPressure != pressDay[key])
       lcd.setCursor(1, 1);
   }
-  sprintf(text, "%dmm", dispPressure);
+  sprintf(text, "%d", dispPressure);
   lcd.print(text);
+  lcd.setCursor(strlen(text) + 1, 1);
+  lcd.write(4);
+#if CO2
+  int left = strlen(text) + 2;
+  int right = dispRain > 10 ? 3 : 2;
+#if BATTERY
+  right += 1;
+#endif
+  sprintf(text, "%d", dispCO2);
+  int tW = (strlen(text) + 1) / 2;
+  int start = floor(((LCD_WIDTH - left - right) / 2) + tW);
+  int clearTo = LCD_WIDTH - right - 1;
+  for (int i = start; i < clearTo + 1; i++) {
+    lcd.setCursor(i, 1);
+    lcd.write(16);
+  }
+  lcd.setCursor(start, 1);
+  lcd.print(text);
+  int width = strlen(text);
+  lcd.setCursor(start + width, 1);
+  lcd.write(5);
+#endif
 }
 
 void Sensor::drawPredict() const {
@@ -147,23 +182,28 @@ void Sensor::drawPredict() const {
 void Sensor::drawPlot() {
   switch (mode) {
     case 3:
-      drawPlot(TEMP_HOUR_PLOT);
-      break;
-    case 31:
-      drawPlot(TEMP_DAY_PLOT);
+      if (sMode)
+            drawPlot(TEMP_DAY_PLOT);
+      else
+            drawPlot(TEMP_HOUR_PLOT);
       break;
     case 4:
-      drawPlot(HUM_HOUR_PLOT);
-      break;
-    case 41:
-      drawPlot(HUM_DAY_PLOT);
+      if (sMode)
+        drawPlot(HUM_DAY_PLOT);
+      else
+        drawPlot(HUM_HOUR_PLOT);
       break;
     case 5:
-      drawPlot(PRESS_HOUR_PLOT);
+      if (sMode)
+        drawPlot(PRESS_DAY_PLOT);
+      else
+        drawPlot(PRESS_HOUR_PLOT);
       break;
-    default:
-    case 51:
-      drawPlot(PRESS_DAY_PLOT);
+    case 6:
+      if (sMode)
+        drawPlot(CO2_DAY_PLOT);
+      else
+        drawPlot(CO2_HOUR_PLOT);
       break;
   }
 }
@@ -175,6 +215,12 @@ void Sensor::drawPlot(plotType plot) {
   char textMax[14];
   int *plotVal;
   switch (plot) {
+    case CO2_HOUR_PLOT:
+      plotVal = co2Hour;
+      break;
+    case CO2_DAY_PLOT:
+      plotVal = co2Day;
+      break;
     case TEMP_DAY_PLOT:
       plotVal = tempDay;
       break;
@@ -191,7 +237,6 @@ void Sensor::drawPlot(plotType plot) {
       plotVal = pressDay;
       break;
     case TEMP_HOUR_PLOT:
-    default:
       plotVal = tempHour;
       break;
   }
@@ -215,6 +260,11 @@ void Sensor::drawPlot(plotType plot) {
     case PRESS_DAY_PLOT:
       sprintf(textMin, "%dmm", minValue);
       sprintf(textMax, "%dmm", maxValue);
+      break;
+    case CO2_HOUR_PLOT:
+    case CO2_DAY_PLOT:
+      sprintf(textMin, "%d%c", minValue, 8);
+      sprintf(textMax, "%d%c", maxValue, 8);
       break;
   }
   lcd.setCursor(16 - strlen(textMin), 0);
@@ -255,4 +305,8 @@ void Sensor::drawPlot(plotType plot) {
     }
     col += 1;
   }
+}
+
+boolean Sensor::co2State(int max) const {
+  return dispCO2 >= max;
 }

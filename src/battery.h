@@ -9,17 +9,14 @@ public:
 
   void tick();
 
-  void draw();
+  void draw() const;
 
   void calibration();
 
 private:
   long current;
   int pr;
-  float vccConst5;
   float vccConst1;
 
-  long readVcc5();
-
-  long readVcc1();
+  long readVcc1() const;
 };

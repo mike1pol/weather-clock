@@ -15,67 +15,76 @@ uint8_t DC20[8] = {0b01110, 0b10001, 0b10001, 0b10001, 0b10001, 0b10001, 0b10001
 extern LiquidCrystal lcd;
 
 int vc1addr = 0;
-int vc5addr = 8;
 
 void Battery::setup() {
   vccConst1 = EEPROM.readFloat(vc1addr);
-  vccConst5 = EEPROM.readFloat(vc5addr);
-  Serial.print(vccConst1, 3);
-  Serial.print(" / ");
-  Serial.println(vccConst5, 3);
-  tick();
+  for (int i = 0; i < 11; i++) {
+    tick();
+  }
 }
 
 void Battery::calibration() {
   vccConst1 = 1.1;
-  vccConst5 = 5.0;
   Serial.print("Real VCC is: ");
   Serial.print(readVcc1());
-  Serial.print(" / ");
-  Serial.println(readVcc1());
   Serial.println("Write your VCC (in millivolts)");
   while (Serial.available() == 0);
   int inputVcc = Serial.parseInt();
   float real_const = (float) 1.1 * inputVcc / readVcc1();
-  float real5_const = (float) 5.0 * inputVcc / readVcc5();
   Serial.print("New voltage constant: ");
   Serial.print(real_const, 3);
-  Serial.print(" / ");
-  Serial.println(real5_const, 3);
   boolean w1 = EEPROM.writeFloat(vc1addr, real_const);
-  boolean w2 = EEPROM.writeFloat(vc5addr, real5_const);
-  if (!w1 || !w2)
+  if (!w1)
     Serial.println("Write EEPROM error");
-  Serial.print(EEPROM.readFloat(vc1addr), 3);
-  Serial.print(" / ");
-  Serial.println(EEPROM.readFloat(vc5addr), 3);
+  else  {
+    Serial.print("New vccConst: ");
+    Serial.println(EEPROM.readFloat(vc1addr), 3);
+  }
   while (true);
 }
 
-void Battery::tick() {
-  long nr = readVcc5();
-  Serial.print("VCC5: ");
-  Serial.print(nr);
-  int nPr = (((nr - BATTERY_MIN) / (BATTERY_MAX - BATTERY_MIN)) * 100);
-  Serial.print(" / ");
-  Serial.println(nPr);
+long median(long newVal) {
+  static long buffer[10];
+  static byte count = 0;
+  buffer[count] = newVal;
 
-  current = readVcc1();
-  pr = ((current - BATTERY_MIN) / (BATTERY_MAX - BATTERY_MIN)) * 100;
-  Serial.print("VCC1: ");
+  if ((count < 10 - 1) and (buffer[count] > buffer[count + 1])) {
+    for (int i = count; i < 10 - 1; i++) {
+      if (buffer[i] > buffer[i + 1]) {
+        long buff = buffer[i];
+        buffer[i] = buffer[i + 1];
+        buffer[i + 1] = buff;
+      }
+    }
+  } else {
+    if ((count > 0) and (buffer[count - 1] > buffer[count])) {
+      for (int i = count; i > 0; i--) {
+        if (buffer[i] < buffer[i - 1]) {
+          long buff = buffer[i];
+          buffer[i] = buffer[i - 1];
+          buffer[i - 1] = buff;
+        }
+      }
+    }
+  }
+  if (++count >= 10) count = 0;
+  return buffer[(int)10 / 2];
+}
+
+void Battery::tick() {
+  long cr = readVcc1();
+  current = (long)median(cr);
+  pr = floor(((double)current - BATTERY_MIN) / (BATTERY_MAX - BATTERY_MIN) * 100);
+#if DEBUG
+  Serial.print("VCC: ");
   Serial.print(current);
   Serial.print(" / ");
-  Serial.println(pr);
+  Serial.print(pr);
   Serial.println(" ");
+#endif
 }
 
-long Battery::readVcc5() {
-  int value = analogRead(BATTERY_PIN);
-  long nr = vccConst5 * 1023 * 1000 / value;
-  return nr;
-}
-
-long Battery::readVcc1() {
+long Battery::readVcc1() const {
   // Read 1.1V reference against AVcc
   // set the reference to Vcc and the measurement to the internal 1.1V reference
 #if defined(__AVR_ATmega32U4__) || defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
@@ -99,7 +108,7 @@ long Battery::readVcc1() {
   return result; // Vcc in millivolts
 }
 
-void Battery::draw() {
+void Battery::draw() const {
   int zero = 0;
   if (pr > 100) {
     lcd.setCursor(15, 1);

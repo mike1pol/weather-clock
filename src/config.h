@@ -1,5 +1,6 @@
 #define DEBUG false
 #define RESET_CLOCK false
+#define LED_PIN 7
 
 // Button
 #define BUTTON_PIN 2
@@ -8,15 +9,14 @@
 // Battery checker
 #define BATTERY true
 #define BATTERY_CALIBRATION false
-#define BATTERY_PIN A3
-#define BATTERY_MIN (float)2.75 * 1000
-#define BATTERY_MAX (float)4.25 * 1000
+#define BATTERY_TIMER 3000
+#define BATTERY_MIN (long)2950
+#define BATTERY_MAX (long)4250
 
-// Timers
-#define BATTERY_TIMER 1000
+// Sensor & Clock Timers
 #define SENSOR_TIMER 28000
 #define CLOCK_TIMER 500
-#define PHOTO_TIMER 2000
+#define PHOTO_TIMER 2500
 #define SWITCH_TIMER 15000
 #define HOUR_TIMER (long)4 * 60 * 1000
 #define DAY_TIMER (long)1.6 * 60 * 60 * 1000
@@ -46,6 +46,9 @@
 
 
 // CO2
-#define CO2_BLINK 800
+#define CO2 true
+#define CO2_LED_TIMER 1000
+#define CO2_MIDDLE 800
+#define CO2_MAX 1200
 #define CO2_RX 3
 #define CO2_TX 4

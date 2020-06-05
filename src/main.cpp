@@ -13,7 +13,6 @@ LiquidCrystal lcd(LCD_RS_PIN, LCD_E_PIN, LCD_D4_PIN, LCD_D5_PIN, LCD_D6_PIN, LCD
 RTC_DS1307 rtc;
 Clock clock;
 
-#include <Adafruit_Sensor.h>
 #include <Adafruit_BME280.h>
 #include <sensors.h>
 
@@ -27,6 +26,14 @@ Sensor sensor;
 Battery battery;
 #endif
 
+#if CO2
+
+#include <MHZ19_uart.h>
+
+MHZ19_uart mhz19;
+
+#endif
+
 #include <GyverTimer.h>
 
 GTimer_ms clockTimer(CLOCK_TIMER);
@@ -36,8 +43,11 @@ GTimer_ms switchStatus(SWITCH_TIMER);
 GTimer_ms hourPlotTimer(HOUR_TIMER);
 GTimer_ms dayPlotTimer(DAY_TIMER);
 GTimer_ms predictTimer(PREDICT_TIMER);
-#ifdef BATTERY
+#if BATTERY
 GTimer_ms batteryTimer(BATTERY_TIMER);
+#endif
+#if CO2
+GTimer_ms co2LedTimer(CO2_LED_TIMER);
 #endif
 
 #include <GyverButton.h>
@@ -48,6 +58,7 @@ Button button;
 
 boolean startupError;
 int mode = 0;
+boolean sMode = false;
 
 void switchMode();
 
@@ -66,7 +77,6 @@ void setup() {
   Serial.begin(9600);
   Serial.println("Initialization...");
 #endif
-  pinMode(BATTERY_PIN, INPUT);
   analogWrite(LCD_BRI_PIN, LCD_BRI_MAX);
   lcd.begin(16, 2);
   lcd.backlight();
@@ -80,6 +90,7 @@ void setup() {
 #endif
   setupLCDClock();
   delay(200);
+  digitalWrite(LED_PIN, 1);
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("Loading...");
@@ -93,52 +104,79 @@ void setup() {
 #if DEBUG
   lcd.clear();
   lcd.setCursor(0, 0);
-  lcd.print(F("RTC..."));
-  Serial.print(F("RTC..."));
+  lcd.print("RTC..");
+  Serial.print("RTC..");
   if (rtcStatus)
-    Serial.println(F("OK"));
+    Serial.println("OK");
   else
-    Serial.println(F("Error"));
+    Serial.println("E");
 
   delay(100);
   if (rtcStatus)
-    lcd.print(F("OK"));
-  else
-  {
-    startupError = false;
-    lcd.print(F("Error"));
+    lcd.print("OK");
+  else {
+    startupError = true;
+    lcd.print("E");
   }
   delay(500);
 #else
   if (!rtcStatus)
-    startupError = false;
+    startupError = true;
 #endif
 
   bool bmeStatus = bme.begin(BME_ADDRESS, &Wire);
 #if DEBUG
+#if CO2
+  lcd.setCursor(9, 0);
+#else
   lcd.setCursor(0, 1);
-  lcd.print(F("BME280..."));
-  Serial.print(F("BME280..."));
-  if (bmeStatus)
-    Serial.println(F("OK"));
-  else
-    Serial.println(F("Error"));
-  if (bmeStatus)
-    lcd.print(F("OK"));
-  else
-  {
-    startupError = false;
-    lcd.print(F("Error"));
+#endif
+  lcd.print("BME..");
+  Serial.print("BME..");
+  if (bmeStatus) {
+    Serial.println("OK");
+    lcd.print("OK");
+  } else {
+    startupError = true;
+    Serial.println("E");
+    lcd.print("E");
+  }
+  delay(500);
+#else
+  if (!bmeStatus)
+    startupError = true;
+#endif
+
+#if CO2
+  mhz19.begin(CO2_TX, CO2_RX);
+  mhz19.setAutoCalibration(false);
+  mhz19.getStatus();
+#if DEBUG
+  lcd.setCursor(0, 1);
+  lcd.print("CO2..");
+  Serial.print("CO2..");
+  delay(500);
+  int co2Status = mhz19.getStatus();
+  if (co2Status == 0) {
+    lcd.print("OK");
+    Serial.println("OK");
+  } else {
+    startupError = true;
+    Serial.println("E");
+    lcd.print("E");
   }
   delay(1000);
 #else
-  if (!bmeStatus)
-    startupError = false;
+  delay(500);
+  int co2Status = mhz19.getStatus();
+  if (co2Status != 0)
+    startupError = true;
+#endif
 #endif
 
 #if DEBUG
   if (startupError)
-    Serial.println("Startup errros");
+    Serial.println("Startup errors");
   else
     Serial.println("Ready");
 #endif
@@ -168,7 +206,17 @@ void setup() {
 
 void loop() {
   button.tick();
-#ifdef BATTERY
+#if CO2
+  if (co2LedTimer.isReady()) {
+    if (sensor.co2State(CO2_MAX))
+      digitalWrite(LED_PIN, 1);
+    else if (sensor.co2State(CO2_MIDDLE))
+      digitalWrite(LED_PIN, digitalRead(LED_PIN) ? 0 : 1);
+    else
+      digitalWrite(LED_PIN, 0);
+  }
+#endif
+#if BATTERY
   if (batteryTimer.isReady()) {
     battery.tick();
     if (mode == 1)
@@ -179,11 +227,6 @@ void loop() {
     clock.tick();
   if (photoTimer.isReady()) {
     int bri = constrain(analogRead(PHOTO_PIN), PHOTO_MIN, PHOTO_MAX);
-#if DEBUG
-    Serial.print(bri);
-    Serial.print(F(" - "));
-    Serial.println(map(bri, PHOTO_MIN, PHOTO_MAX, LCD_BRI_MIN, LCD_BRI_MAX));
-#endif
     analogWrite(LCD_BRI_PIN, (int) map(bri, PHOTO_MIN, PHOTO_MAX, LCD_BRI_MIN, LCD_BRI_MAX));
   }
   if (sensorTimer.isReady()) {
@@ -208,7 +251,6 @@ void loop() {
       sensor.drawPlot();
     }
   }
-
   if (switchStatus.isReady()) {
     mode++;
     switchMode();
@@ -237,11 +279,8 @@ void switchMode() {
       switchMode();
       break;
     case 3:
-    case 31:
     case 4:
-    case 41:
     case 5:
-    case 51:
     default:
       setupLCDPlot();
       lcd.clear();
@@ -264,6 +303,8 @@ uint8_t UB[8] = {0b11111, 0b11111, 0b11111, 0b00000, 0b00000, 0b00000, 0b00000, 
 uint8_t UMB[8] = {0b11111, 0b11111, 0b11111, 0b00000, 0b00000, 0b00000, 0b11111, 0b11111};
 uint8_t LMB[8] = {0b11111, 0b00000, 0b00000, 0b00000, 0b00000, 0b11111, 0b11111, 0b11111};
 uint8_t LM2[8] = {0b11111, 0b00000, 0b00000, 0b00000, 0b00000, 0b00000, 0b00000, 0b00000};
+uint8_t PR[8] = {0b00100, 0b00100, 0b11111, 0b01110, 0b00100, 0b00000, 0b11011, 0b00100};
+uint8_t CO[8] = {0b00001, 0b11111, 0b10001, 0b11111, 0b00000, 0b10001, 0b10001, 0b11111};
 
 // Power icons
 // AC
@@ -284,6 +325,8 @@ void setupLCDInfo() {
   lcd.createChar(0, AC);
   lcd.createChar(2, rowD);
   lcd.createChar(3, rowU);
+  lcd.createChar(4, PR);
+  lcd.createChar(5, CO);
 }
 
 void setupLCDPlot() {
@@ -294,4 +337,5 @@ void setupLCDPlot() {
   lcd.createChar(5, row5);
   lcd.createChar(6, row6);
   lcd.createChar(7, row7);
+  lcd.createChar(8, CO);
 }

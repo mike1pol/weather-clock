@@ -2,57 +2,53 @@
 
 extern GButton btn;
 extern int mode;
+extern boolean sMode;
 extern GTimer_ms switchStatus;
 
 extern void switchMode();
 
 void Button::tick() {
   btn.tick();
-  if (btn.isSingle()) {
+  if (btn.isSingle() && !btn.isHolded() && !btn.isHold()) {
     if (!isClicked) {
       isClicked = true;
       switchStatus.stop();
-      mode++;
-    } else if (mode == 1)
+    }
+    if (mode == 1)
       mode = 3;
-    else if (mode == 5 || mode == 51)
+    else if (mode == end)
       mode = 0;
-    else if (mode == 31)
-      mode = 4;
-    else if (mode == 41)
-      mode = 5;
     else
       mode += 1;
+    if (sMode)
+      sMode = !sMode;
     switchMode();
   } else if (btn.isDouble()) {
-    if (mode == 3 || mode == 31)
+    if (!isClicked) {
+      isClicked = true;
+      switchStatus.stop();
+    }
+    if (mode == 3)
       mode = 1;
     else if (mode == 0)
-      mode = 5;
-    else if (mode == 51)
-      mode = 4;
-    else if (mode == 41)
-      mode = 3;
+      mode = end;
     else
       mode -= 1;
+    if (sMode)
+      sMode = !sMode;
     switchMode();
-  } else if (btn.isHold()) {
-    if (mode > 30)
-      return;
-    if (mode == 3)
-      mode = 31;
-    else if (mode == 4)
-      mode = 41;
-    else if (mode == 5)
-      mode = 51;
-    if (mode > 30)
+  } else if (btn.isHolded()) {
+    if (btn.getHoldClicks() == 1 && mode > 2) {
+      sMode = !sMode;
       switchMode();
-  } else if (btn.isTriple()) {
+      return;
+    }
     switchStatus.reset();
     switchStatus.start();
     mode = 0;
+    if (isClicked)
+      switchMode();
     isClicked = false;
-    switchMode();
   }
 }
 
