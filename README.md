@@ -1,4 +1,6 @@
 # Home weather clock (WIP)
+Fork from: https://github.com/AlexGyver/MeteoClock
+
 ## Required:
 - Arduino
 - LCD 1602
