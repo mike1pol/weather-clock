@@ -9,6 +9,7 @@
 // Battery checker
 #define BATTERY true
 #define BATTERY_CALIBRATION false
+#define BATTERY_LOW_LED 30
 #define BATTERY_TIMER 3000
 #define BATTERY_MIN (long)2950
 #define BATTERY_MAX (long)4250
@@ -47,7 +48,7 @@
 
 // CO2
 #define CO2 true
-#define CO2_LED_TIMER 1000
+#define CO2_LED_TIMER 2000
 #define CO2_MIDDLE 800
 #define CO2_MAX 1200
 #define CO2_RX 3

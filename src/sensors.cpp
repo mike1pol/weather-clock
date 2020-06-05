@@ -23,11 +23,11 @@ void Sensor::setup() {
 
 void Sensor::tick() {
   bme.takeForcedMeasurement();
-  dispTemp = (int) bme.readTemperature();
-  dispHum = (int) bme.readHumidity();
-  dispPressure = (int) (bme.readPressure() * 0.00750062);
+  temp = (int) bme.readTemperature();
+  hum = (int) bme.readHumidity();
+  pressure = (int) (bme.readPressure() * 0.00750062);
 #if CO2
-  dispCO2 = (int) mhz19.getPPM();
+  co2 = (int) mhz19.getPPM();
 #endif
 }
 
@@ -39,10 +39,10 @@ void Sensor::saveHour() {
     pressHour[i] = pressHour[next];
     co2Hour[i] = co2Hour[next];
   }
-  tempHour[14] = dispTemp;
-  humHour[14] = dispHum;
-  pressHour[14] = dispPressure;
-  co2Hour[14] = dispCO2;
+  tempHour[14] = temp;
+  humHour[14] = hum;
+  pressHour[14] = pressure;
+  co2Hour[14] = co2;
 }
 
 void Sensor::saveDay() {
@@ -96,7 +96,7 @@ void Sensor::predict() {
   a = a - sumX * sumY;
   a = a / (6 * sumX2 - sumX * sumX);
   delta = a * 6;
-  dispRain = (int) map(delta, -250, 250, 100, -100);
+  rain = (int) map(delta, -250, 250, 100, -100);
 }
 
 void Sensor::draw() const {
@@ -107,61 +107,68 @@ void Sensor::draw() const {
   // Temp
   lcd.setCursor(0, 0);
   if (tempDay[key] > 0) {
-    if (dispHum > tempDay[key])
+    if (hum > tempDay[key])
       lcd.write(up);
-    else if (dispHum < tempDay[key])
+    else if (hum < tempDay[key])
       lcd.write(down);
 
-    if (dispHum != tempDay[key])
+    if (hum != tempDay[key])
       lcd.setCursor(1, 0);
   }
-  sprintf(text, "%d%cC", dispTemp, 223);
+  sprintf(text, "%d%cC", temp, 223);
   lcd.print(text);
 
   // Hum
   if (humDay[key] > 0) {
-    lcd.setCursor(dispHum >= 100 ? 11 : 12, 0);
-    if (dispHum > humDay[key])
+    lcd.setCursor(hum >= 100 ? 11 : 12, 0);
+    if (hum > humDay[key])
       lcd.write(up);
-    else if (dispHum < humDay[key])
+    else if (hum < humDay[key])
       lcd.write(down);
   }
-  lcd.setCursor(dispHum >= 100 ? 12 : 13, 0);
-  sprintf(text, "%d%%", dispHum);
+  lcd.setCursor(hum >= 100 ? 12 : 13, 0);
+  sprintf(text, "%d%%", hum);
   lcd.print(text);
   // Clear second line
-  int clearTo = 16;
+  int clearFrom = 0;
+  sprintf(text, "%d%%", rain);
+  int clearTo = LCD_WIDTH - strlen(text);
 #if BATTERY
-  clearTo -= 1;
+  clearFrom = 1;
 #endif
-  for (int i = 0; i < clearTo + 1; i++) {
+  Serial.print("clearFrom: ");
+  Serial.print(clearFrom);
+  Serial.print(" clearTo: ");
+  Serial.println(clearTo);
+  for (int i = clearFrom; i < clearTo; i++) {
     lcd.setCursor(i, 1);
     lcd.write(16);
   }
   // Press
-  lcd.setCursor(0, 1);
-  if (pressDay[key] > 0) {
-    if (dispPressure > pressDay[key])
-      lcd.write(up);
-    else if (dispPressure < pressDay[key])
-      lcd.write(down);
-
-    if (dispPressure != pressDay[key])
-      lcd.setCursor(1, 1);
-  }
-  sprintf(text, "%d", dispPressure);
+  int left = 0;
+#if BATTERY
+  left = 1;
+#endif
+  lcd.setCursor(left, 1);
+  sprintf(text, "%d", pressure);
   lcd.print(text);
-  lcd.setCursor(strlen(text) + 1, 1);
+  lcd.setCursor(left + strlen(text), 1);
   lcd.write(4);
 #if CO2
-  int left = strlen(text) + 2;
-  int right = dispRain > 10 ? 3 : 2;
-#if BATTERY
-  right += 1;
-#endif
-  sprintf(text, "%d", dispCO2);
-  int tW = (strlen(text) + 1) / 2;
-  int start = floor(((LCD_WIDTH - left - right) / 2) + tW);
+  left += strlen(text) + 2;
+  Serial.print("left: ");
+  Serial.print(left);
+  sprintf(text, "%d%%", rain);
+  int right = strlen(text) + 1;
+  Serial.print(" right: ");
+  Serial.print(right);
+  sprintf(text, "%d", co2);
+  int tW = (strlen(text) + 1);
+  Serial.print(" tW: ");
+  Serial.print(tW);
+  int start = left + floor((LCD_WIDTH - left - right - tW) / 2);
+  Serial.print(" start: ");
+  Serial.println(start);
   lcd.setCursor(start, 1);
   lcd.print(text);
   int width = strlen(text);
@@ -173,11 +180,8 @@ void Sensor::draw() const {
 void Sensor::drawPredict() const {
   char text[14];
   // rain
-  sprintf(text, "%d%%", dispRain);
+  sprintf(text, "%d%%", rain);
   int rainCol = LCD_WIDTH - strlen(text);
-#ifdef BATTERY
-  rainCol = rainCol - 1;
-#endif
   lcd.setCursor(rainCol, 1);
   lcd.print(text);
 }
@@ -311,5 +315,5 @@ void Sensor::drawPlot(plotType plot) {
 }
 
 boolean Sensor::co2State(int max) const {
-  return dispCO2 >= max;
+  return co2 >= max;
 }

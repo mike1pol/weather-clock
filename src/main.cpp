@@ -59,6 +59,7 @@ Button button;
 boolean startupError;
 int mode = 0;
 boolean sMode = false;
+int ledState = 0;
 
 void switchMode();
 
@@ -73,10 +74,10 @@ void buttonInterrupt() {
 }
 
 void setup() {
-#if DEBUG || BATTERY_CALIBRATION
+//#if DEBUG || BATTERY_CALIBRATION
   Serial.begin(9600);
   Serial.println("Initialization...");
-#endif
+//#endif
   analogWrite(LCD_BRI_PIN, LCD_BRI_MAX);
   lcd.begin(16, 2);
   lcd.backlight();
@@ -207,22 +208,25 @@ void setup() {
 void loop() {
   button.tick();
 #if CO2
-  if (co2LedTimer.isReady()) {
+  if (co2LedTimer.isReady() && !battery.isLow()) {
     if (sensor.co2State(CO2_MAX))
-      digitalWrite(LED_PIN, 1);
+      ledState = 1;
     else if (sensor.co2State(CO2_MIDDLE))
-      digitalWrite(LED_PIN, digitalRead(LED_PIN) ? 0 : 1);
+      ledState = ledState == 1 ? 0 : 1;
     else
-      digitalWrite(LED_PIN, 0);
+      ledState = 0;
   }
 #endif
 #if BATTERY
   if (batteryTimer.isReady()) {
     battery.tick();
+    if (battery.isLow())
+      ledState = 1;
     if (mode == 1)
       battery.draw();
   }
 #endif
+  digitalWrite(LED_PIN, ledState);
   if (clockTimer.isReady())
     clock.tick();
   if (photoTimer.isReady()) {

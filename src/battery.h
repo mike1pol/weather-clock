@@ -13,6 +13,8 @@ public:
 
   void calibration();
 
+  boolean isLow() const;
+
 private:
   long current;
   int pr;

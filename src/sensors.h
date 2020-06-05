@@ -35,11 +35,11 @@ public:
   boolean co2State(int max) const;
 
 private:
-  int dispTemp;
-  int dispHum;
-  int dispPressure;
-  int dispRain;
-  int dispCO2;
+  int temp;
+  int hum;
+  int pressure;
+  int rain;
+  int co2;
   int delta;
   byte time_array[6];
   uint32_t pressure_array[6];
