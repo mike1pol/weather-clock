@@ -1,4 +1,4 @@
-#define DEBUG false
+#define DEBUG true
 #define RESET_CLOCK false
 #define LED_PIN 7
 
@@ -8,10 +8,10 @@
 
 // Battery checker
 #define BATTERY true
-#define BATTERY_CALIBRATION false
+#define BATTERY_PIN A3
 #define BATTERY_LOW_LED 30
 #define BATTERY_TIMER 3000
-#define BATTERY_MIN (long)2950
+#define BATTERY_MIN (long)3000
 #define BATTERY_MAX (long)4250
 
 // Sensor & Clock Timers

@@ -21,9 +21,9 @@ Sensor sensor;
 
 #if BATTERY
 
-#include <battery.h>
+#include <app_battery.h>
 
-Battery battery;
+AppBattery battery;
 #endif
 
 #if CO2
@@ -74,21 +74,13 @@ void buttonInterrupt() {
 }
 
 void setup() {
-#if DEBUG || BATTERY_CALIBRATION
+#if DEBUG
   Serial.begin(9600);
   Serial.println("Initialization...");
 #endif
   analogWrite(LCD_BRI_PIN, LCD_BRI_MAX);
   lcd.begin(16, 2);
   lcd.backlight();
-#if BATTERY && BATTERY_CALIBRATION
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print("Battery callibration");
-  lcd.setCursor(0, 1);
-  lcd.print("Connect to serial port");
-  battery.calibration();
-#endif
   setupLCDClock();
   delay(200);
   digitalWrite(LED_PIN, 1);
