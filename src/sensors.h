@@ -1,7 +1,9 @@
 #include <Adafruit_BME280.h>
 #include <MHZ19_uart.h>
-#include <LiquidCrystal.h>
-#include <config.h>
+#include <LiquidCrystal_I2C.h>
+
+#include "config.h"
+#include "dig.h"
 
 enum plotType {
   TEMP_HOUR_PLOT,
@@ -20,7 +22,9 @@ public:
 
   void tick();
 
-  void draw() const;
+  void drawScreenTwo() const;
+
+  void drawScreenOne() const;
 
   void drawPlot();
 
@@ -28,7 +32,7 @@ public:
 
   void saveDay();
 
-  void predict();
+  void tickPredict();
 
   void drawPredict() const;
 
@@ -42,7 +46,7 @@ private:
   int co2;
   int delta;
   byte time_array[6];
-  uint32_t pressure_array[6];
+  float pressure_array[6];
   int tempHour[15], tempDay[15];
   int humHour[15], humDay[15];
   int pressHour[15], pressDay[15];

@@ -4,21 +4,24 @@ extern Adafruit_BME280 bme;
 #if CO2
 extern MHZ19_uart mhz19;
 #endif
-extern LiquidCrystal lcd;
+extern LiquidCrystal_I2C lcd;
 extern int mode;
 extern boolean sMode;
+extern uint8_t CO;
+extern uint8_t PR;
 
 void Sensor::setup() {
   bme.takeForcedMeasurement();
-  uint32_t Pressure = bme.readPressure();
+  float Pressure = bme.readPressure();
   for (byte i = 0; i < 6; i++) {
     pressure_array[i] = Pressure;
     time_array[i] = i;
   }
   tick();
-  predict();
+  tickPredict();
   saveHour();
   saveDay();
+  drawScreenOne();
 }
 
 void Sensor::tick() {
@@ -28,6 +31,16 @@ void Sensor::tick() {
   pressure = (int) (bme.readPressure() * 0.00750062);
 #if CO2
   co2 = (int) mhz19.getPPM();
+#endif
+#if DEBUG
+  Serial.print("Temp: ");
+  Serial.println(temp);
+  Serial.print("Hum: ");
+  Serial.println(hum);
+  Serial.print("Pressure: ");
+  Serial.println(pressure);
+  Serial.print("CO2: ");
+  Serial.println(co2);
 #endif
 }
 
@@ -69,7 +82,7 @@ void Sensor::saveDay() {
   co2Day[14] = (int) averCO;
 }
 
-void Sensor::predict() {
+void Sensor::tickPredict() {
   long averPress = 0;
   for (byte i = 0; i < 10; i++) {
     bme.takeForcedMeasurement();
@@ -99,7 +112,87 @@ void Sensor::predict() {
   rain = (int) map(delta, -250, 250, 100, -100);
 }
 
-void Sensor::draw() const {
+void Sensor::drawScreenOne() const {
+  int key = 13;
+  int down = 6;
+  int up = 7;
+  char text[14];
+  uint8_t text_width = 0;
+  uint8_t x = 12;
+  uint8_t y = 2;
+  // Temp
+  // Clear
+  lcd.setCursor(x, y);
+  lcd.print("        ");
+  lcd.setCursor(x, y + 1);
+  lcd.print("        ");
+  // First dig
+  if (temp / 10 == 0)
+    WriteDig(10, x, y);
+  else
+    WriteDig(temp / 10, x, y);
+  // Second dig
+  WriteDig(temp % 10, x + 4, y);
+  // Celsius icon
+  lcd.setCursor(x + 7, y);
+  lcd.write(223);
+  // Trend arrow
+  if (tempDay[key] > 0) {
+    lcd.setCursor(x + 7, y + 1);
+    if (hum > tempDay[key])
+      lcd.write(up);
+    else if (hum < tempDay[key])
+      lcd.write(down);
+  }
+
+  // Hum
+  // Clear
+  x = 0;
+  lcd.setCursor(x, y);
+  lcd.print("     ");
+  // Trend arrow
+  if (humDay[key] > 0) {
+    if (hum > humDay[key])
+      lcd.write(up);
+    else if (hum < humDay[key])
+      lcd.write(down);
+  }
+  // Humanity
+  lcd.setCursor(hum >= 100 ? x + 1 : x , y);
+  sprintf(text, "%d%%", hum);
+  lcd.print(text);
+
+  // Press
+  x = 0;
+  // Clear
+  lcd.setCursor(x, y + 1);
+  lcd.print("     ");
+  // Pressure
+  lcd.setCursor(x, y + 1);
+  sprintf(text, "%d", pressure);
+  text_width = strlen(text);
+  lcd.print(text);
+  // Pressure Icon
+  lcd.setCursor(x + text_width, y + 1);
+  lcd.write(PR);
+
+  // CO2
+  // Clear
+  x = 6;
+  y += 1;
+  lcd.setCursor(x, y);
+  lcd.print("     ");
+  // CO2
+  lcd.setCursor(x, y);
+  sprintf(text, "%d", co2);
+  text_width = strlen(text);
+  lcd.print(text);
+  // Icon
+  lcd.setCursor(x + text_width, y);
+  lcd.write(CO);
+}
+
+void Sensor::drawScreenTwo() const {
   int key = 13;
   int down = 2;
   int up = 3;
@@ -120,13 +213,13 @@ void Sensor::draw() const {
 
   // Hum
   if (humDay[key] > 0) {
-    lcd.setCursor(hum >= 100 ? 11 : 12, 0);
+    lcd.setCursor(hum >= 100 ? LCD_WIDTH - 5 : LCD_WIDTH - 4, 0);
     if (hum > humDay[key])
       lcd.write(up);
     else if (hum < humDay[key])
       lcd.write(down);
   }
-  lcd.setCursor(hum >= 100 ? 12 : 13, 0);
+  lcd.setCursor(hum >= 100 ? LCD_WIDTH - 4 : LCD_WIDTH - 3, 0);
   sprintf(text, "%d%%", hum);
   lcd.print(text);
   // Clear second line
@@ -178,9 +271,9 @@ void Sensor::drawPlot() {
   switch (mode) {
     case 3:
       if (sMode)
-            drawPlot(TEMP_DAY_PLOT);
+        drawPlot(TEMP_DAY_PLOT);
       else
-            drawPlot(TEMP_HOUR_PLOT);
+        drawPlot(TEMP_HOUR_PLOT);
       break;
     case 4:
       if (sMode)

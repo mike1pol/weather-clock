@@ -3,9 +3,10 @@
 
 #include <config.h>
 
-#include <LiquidCrystal.h>
+#include <LiquidCrystal_I2C.h>
 
-LiquidCrystal lcd(LCD_RS_PIN, LCD_E_PIN, LCD_D4_PIN, LCD_D5_PIN, LCD_D6_PIN, LCD_D7_PIN);
+uint8_t bri = LCD_BRI_MAX - ((LCD_BRI_MAX - LCD_BRI_MIN) / 2);
+LiquidCrystal_I2C lcd(LCD_ADDR, LCD_WIDTH, LCD_HEIGHT);
 
 #include <RTClib.h>
 #include <clock.h>
@@ -37,9 +38,11 @@ MHZ19_uart mhz19;
 #include <GyverTimer.h>
 
 GTimer_ms clockTimer(CLOCK_TIMER);
+GTimer_ms clockReDrawScreenOneTimer(CLOCK_REDRAW_SCREEN_ONE_TIMER);
+#if PHOTO
 GTimer_ms photoTimer(PHOTO_TIMER);
+#endif
 GTimer_ms sensorTimer(SENSOR_TIMER);
-GTimer_ms switchStatus(SWITCH_TIMER);
 GTimer_ms hourPlotTimer(HOUR_TIMER);
 GTimer_ms dayPlotTimer(DAY_TIMER);
 GTimer_ms predictTimer(PREDICT_TIMER);
@@ -78,22 +81,25 @@ void setup() {
   Serial.begin(9600);
   Serial.println("Initialization...");
 #endif
-  analogWrite(LCD_BRI_PIN, LCD_BRI_MAX);
-  lcd.begin(16, 2);
+  pinMode(LED_PIN, OUTPUT);
+  digitalWrite(LED_PIN, 1);
+  lcd.init();
   lcd.backlight();
   setupLCDClock();
+  analogWrite(LCD_BRI_PIN, bri);
   delay(200);
-  digitalWrite(LED_PIN, 1);
   lcd.clear();
   lcd.setCursor(0, 0);
   lcd.print("Loading...");
   delay(500);
+  digitalWrite(LED_PIN, 0);
 #if BUTTON_INTERRUPT
   attachInterrupt(BUTTON_PIN - 1, buttonInterrupt, CHANGE);
 #endif
   bool rtcStatus = rtc.begin();
-  if (RESET_CLOCK)
-    rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+#if (RESET_CLOCK)
+  rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+#endif
 #if DEBUG
   lcd.clear();
   lcd.setCursor(0, 0);
@@ -179,14 +185,13 @@ void setup() {
       lcd.setCursor(0, 0);
       lcd.print("Started with errors");
       lcd.setCursor(0, 1);
-      lcd.print("Try to restart");
-      delay(1000);
+      lcd.print("Try to restart: 1000ms");
+      delay(10000);
     }
   } else {
     lcd.clear();
     clock.setup();
-    sensor.setup();
-#ifdef BATTERY
+#if BATTERY
     battery.setup();
 #endif
     bme.setSampling(Adafruit_BME280::MODE_FORCED,
@@ -194,13 +199,62 @@ void setup() {
                     Adafruit_BME280::SAMPLING_X1, // pressure
                     Adafruit_BME280::SAMPLING_X1, // humidity
                     Adafruit_BME280::FILTER_OFF);
+    sensor.setup();
   }
 }
 
-void loop() {
+void screenOne() {
+  if (clockReDrawScreenOneTimer.isReady())
+    clock.drawScreenOne();
+  if (sensorTimer.isReady())
+    sensor.drawScreenOne();
+}
+
+void screenTwo() {
+  sensor.drawScreenTwo();
+  clock.drawScreenTwo();
+  if (hourPlotTimer.isReady())
+    sensor.drawPredict();
+}
+
+void screenPlot() {
+  sensor.drawPlot();
+}
+
+void photoTick() {
+#if PHOTO
+  if (photoTimer.isReady()) {
+    int bri = constrain(analogRead(PHOTO_PIN), PHOTO_MIN, PHOTO_MAX);
+    analogWrite(LCD_BRI_PIN, (int) map(bri, PHOTO_MIN, PHOTO_MAX, LCD_BRI_MIN, LCD_BRI_MAX));
+  }
+# else
+  analogWrite(LCD_BRI_PIN, (int) bri);
+#endif
+}
+
+void tick() {
   button.tick();
+  photoTick();
+  if (clockTimer.isReady())
+    clock.tick();
+  if (sensorTimer.isReady())
+    sensor.tick();
+  if (predictTimer.isReady())
+    sensor.tickPredict();
+  if (hourPlotTimer.isReady())
+    sensor.saveHour();
+  if (dayPlotTimer.isReady()) {
+    sensor.saveDay();
+  }
+}
+
+void info() {
 #if CO2
+#if BATTERY
   if (co2LedTimer.isReady() && !battery.isLow()) {
+#else
+  if (co2LedTimer.isReady()) {
+#endif
     if (sensor.co2State(CO2_MAX))
       ledState = 1;
     else if (sensor.co2State(CO2_MIDDLE))
@@ -209,6 +263,10 @@ void loop() {
       ledState = 0;
   }
 #endif
+  digitalWrite(LED_PIN, ledState);
+}
+
+void Battery() {
 #if BATTERY
   if (batteryTimer.isReady()) {
     battery.tick();
@@ -218,39 +276,17 @@ void loop() {
       battery.draw();
   }
 #endif
-  digitalWrite(LED_PIN, ledState);
-  if (clockTimer.isReady())
-    clock.tick();
-  if (photoTimer.isReady()) {
-    int bri = constrain(analogRead(PHOTO_PIN), PHOTO_MIN, PHOTO_MAX);
-    analogWrite(LCD_BRI_PIN, (int) map(bri, PHOTO_MIN, PHOTO_MAX, LCD_BRI_MIN, LCD_BRI_MAX));
-  }
-  if (sensorTimer.isReady()) {
-    sensor.tick();
-    if (mode == 1)
-      sensor.draw();
-  }
-  if (predictTimer.isReady()) {
-    sensor.predict();
-    if (mode == 1)
-      sensor.drawPredict();
-  }
-  if (hourPlotTimer.isReady()) {
-    sensor.saveHour();
-    if (mode == 3 || mode == 4 || mode == 5) {
-      sensor.drawPlot();
-    }
-  }
-  if (dayPlotTimer.isReady()) {
-    sensor.saveDay();
-    if (mode == 31 || mode == 41 || mode == 51) {
-      sensor.drawPlot();
-    }
-  }
-  if (switchStatus.isReady()) {
-    mode++;
-    switchMode();
-  }
+}
+
+void loop() {
+  tick();
+  info();
+  if (mode == 0)
+    screenOne();
+  else if (mode == 2)
+    screenTwo();
+  else
+    screenPlot();
 }
 
 void switchMode() {
@@ -258,15 +294,15 @@ void switchMode() {
     case 0:
       setupLCDClock();
       lcd.clear();
-      clock.draw();
+      clock.drawScreenOne();
+      sensor.drawScreenOne();
       break;
     case 1:
       setupLCDInfo();
       lcd.clear();
-      clock.draw();
-      sensor.draw();
-      sensor.drawPredict();
-#ifdef BATTERY
+      clock.drawScreenTwo();
+      sensor.drawScreenTwo();
+#if BATTERY
       battery.draw();
 #endif
       break;
@@ -280,7 +316,7 @@ void switchMode() {
     default:
       setupLCDPlot();
       lcd.clear();
-      sensor.drawPlot();
+      screenPlot();
       break;
   }
 }

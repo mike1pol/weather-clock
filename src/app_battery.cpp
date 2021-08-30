@@ -10,7 +10,7 @@ uint8_t DC40[8] = {0b01110, 0b11111, 0b11111, 0b10001, 0b10001, 0b10001, 0b10001
 uint8_t DC30[8] = {0b01110, 0b11111, 0b10001, 0b10001, 0b10001, 0b10001, 0b10001, 0b10001};
 uint8_t DC20[8] = {0b01110, 0b10001, 0b10001, 0b10001, 0b10001, 0b10001, 0b10001, 0b10001};
 
-extern LiquidCrystal lcd;
+extern LiquidCrystal_I2C lcd;
 
 Battery bat(BATTERY_MIN, BATTERY_MAX, BATTERY_PIN);
 

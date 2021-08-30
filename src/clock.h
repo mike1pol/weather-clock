@@ -1,5 +1,7 @@
-#include <LiquidCrystal.h>
+#include <LiquidCrystal_I2C.h>
 #include <RTClib.h>
+#include "config.h"
+#include "dig.h"
 
 class Clock {
 public:
@@ -7,16 +9,14 @@ public:
 
   void tick();
 
-  void draw();
+  void drawScreenOne() const;
+
+  void drawScreenTwo() const;
 
 private:
   DateTime now;
-  int8_t hours, minutes, secs;
+  uint8_t hours, minutes, secs;
   boolean dotFlag;
 
-  void dig(byte dig, byte x, byte y);
-
-  void digSeg(byte x, byte y, byte z1, byte z2, byte z3, byte z4, byte z5, byte z6);
-
-  void dots(byte x, byte y);
+  void dots() const;
 };

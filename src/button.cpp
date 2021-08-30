@@ -3,7 +3,7 @@
 extern GButton btn;
 extern int mode;
 extern boolean sMode;
-extern GTimer_ms switchStatus;
+//extern GTimer_ms switchStatus;
 
 extern void switchMode();
 
@@ -12,7 +12,7 @@ void Button::tick() {
   if (btn.isSingle() && !btn.isHolded() && !btn.isHold()) {
     if (!isClicked) {
       isClicked = true;
-      switchStatus.stop();
+//      switchStatus.stop();
     }
     if (mode == 1)
       mode = 3;
@@ -26,7 +26,7 @@ void Button::tick() {
   } else if (btn.isDouble()) {
     if (!isClicked) {
       isClicked = true;
-      switchStatus.stop();
+//      switchStatus.stop();
     }
     if (mode == 3)
       mode = 1;
@@ -43,8 +43,8 @@ void Button::tick() {
       switchMode();
       return;
     }
-    switchStatus.reset();
-    switchStatus.start();
+//    switchStatus.reset();
+//    switchStatus.start();
     mode = 0;
     if (isClicked)
       switchMode();

@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#include <LiquidCrystal.h>
+#include <LiquidCrystal_I2C.h>
 #include <EEPROMex.h>
 #include <Battery.h>
 #include <config.h>
